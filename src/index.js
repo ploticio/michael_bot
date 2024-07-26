@@ -1,8 +1,9 @@
 // const cron = require("node-cron")
-// const { Client, GatewayIntentBits } = require("discord.js")
+const fetch = require('node-fetch');
+const { Client, GatewayIntentBits } = require("discord.js")
 const { TOKEN, CHANNEL_ID, EVENT_LIST } = require("../config.json")
 
-// const client = new Client({intents: [GatewayIntentBits.Guilds]})
+const client = new Client({intents: [GatewayIntentBits.Guilds]})
 
 // client.on("ready", (c) => {
 //     console.log("Bot is Ready");
@@ -12,10 +13,6 @@ const { TOKEN, CHANNEL_ID, EVENT_LIST } = require("../config.json")
 //     //     channel.send("michael time: " + loc_time)
 //     // })
 // })
-
-// client.login(TOKEN)
-
-const fetch = require('node-fetch');
 
 const getData = async () => {
   try {
@@ -38,13 +35,19 @@ const getResults = async () => {
 
 const printAll = async() => {
     const dataArray = await getData()
+    let result = ""
+    result += "checked at " + getMichaelTime()
+    result += "\n--------------------------"
+    // console.log("checked at " + getMichaelTime())
+    // console.log("--------------------------");
     for(const entry of dataArray) {
-        printEntry(entry)
+        result += "\n" + printEntry(entry)
     }
+    return result
 }
 
 const printEntry = (entry) => {
-    console.log(`${getDay(entry.start_day)} @ ${getTime(entry.start_hour)} for ${Number(entry.event_cost) === 0 ? "Free" : `$${Number(entry.event_cost)}`} | Tickets Available: ${entry.tickets_available}` )
+    return (`${getDay(entry.start_day)} @ ${getTime(entry.start_hour)} for ${Number(entry.event_cost) === 0 ? "Free" : `$${Number(entry.event_cost)}`} | Tickets Available: ${entry.tickets_available}` )
 }
 
 const getDay = (day) => {
@@ -67,4 +70,18 @@ const getTime = (time) => {
         return (time) + " AM"
 }
 
-getResults()
+const getMichaelTime = () => {
+    let localTime = new Date().toLocaleTimeString([], {timeStyle: "medium", timeZone: "America/Chicago"}).toString()
+    return "" + localTime + " michael time"
+}
+
+(async () => {
+    console.log("1");
+    console.log(await printAll())
+    console.log("2");
+})()
+
+console.log("3");
+
+
+client.login(TOKEN)
