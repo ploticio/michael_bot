@@ -1,18 +1,57 @@
-// const cron = require("node-cron")
+const cron = require("node-cron")
 const fetch = require('node-fetch');
-const { Client, GatewayIntentBits } = require("discord.js")
-const { TOKEN, CHANNEL_ID, EVENT_LIST } = require("../config.json")
+const { Client, GatewayIntentBits, REST, Routes } = require("discord.js")
+const { TOKEN, CHANNEL_ID, EVENT_LIST, BOT_ID, SERVER_ID, USER_ID, LINK } = require("../config.json")
 
 const client = new Client({intents: [GatewayIntentBits.Guilds]})
 
-// client.on("ready", (c) => {
-//     console.log("Bot is Ready");
-//     const channel = client.channels.cache.get(CHANNEL_ID)
-//     // cron.schedule("*/10 * * * * *", () => {
-//     //     let loc_time = new Date().toLocaleTimeString([], {timeStyle: "short", timeZone: "America/Chicago"})
-//     //     channel.send("michael time: " + loc_time)
-//     // })
-// })
+const commands = [
+    {
+        name: "query",
+        description: "Checks all entries"
+    },
+    {
+        name: "test",
+        description: "tests pinging"
+    }
+]
+
+const rest = new REST().setToken(TOKEN);
+
+(async () => {
+    try {
+        console.log("Registering Commands");
+        await rest.put(Routes.applicationGuildCommands(BOT_ID, SERVER_ID), {body: commands})
+        console.log("Commands Registered");
+    } catch (e) {
+        console.log(e);
+    }
+})()
+
+client.on("interactionCreate", async (interaction) => {
+    if(!interaction.isChatInputCommand()) return;
+    if(interaction.commandName === "query") {
+        interaction.reply(await printAll())
+    }
+    if(interaction.commandName === "test") {
+        const channel = client.channels.cache.get(CHANNEL_ID)
+        interaction.reply("Testing Ping")
+        channel.send(`<@${USER_ID}>`)
+
+    }
+})
+
+client.on("ready", (c) => {
+    console.log("Bot is Ready");
+    const channel = client.channels.cache.get(CHANNEL_ID)
+    let cronjob = cron.schedule("*/10 * * * * *", async () => {
+        let found = await getResults()
+        if (found) {
+            channel.send(`<@${USER_ID}> ` + found + `\n${LINK}`)
+            cronjob.stop()
+        }
+    })
+})
 
 const getData = async () => {
   try {
@@ -27,10 +66,11 @@ const getData = async () => {
 
 const getResults = async () => {
     const dataArray = await getData()
-    const openEvents = dataArray.filter(event => event.tickets_available > 0)
+    const openEvents = dataArray.filter(event => event.event_cost > 0)
     if (openEvents.length > 0) {
-        printEntry(openEvents[0])
+        return "Discovered " + getMichaelTime() + "\n" + printEntry(openEvents[0])
     }
+    return false
 }
 
 const printAll = async() => {
@@ -38,8 +78,6 @@ const printAll = async() => {
     let result = ""
     result += "checked at " + getMichaelTime()
     result += "\n--------------------------"
-    // console.log("checked at " + getMichaelTime())
-    // console.log("--------------------------");
     for(const entry of dataArray) {
         result += "\n" + printEntry(entry)
     }
@@ -65,23 +103,15 @@ const getDay = (day) => {
 
 const getTime = (time) => {
     if (time > 12)
-        return (time - 12) + " PM"
+        return (time - 12) + " PM EDT"
     else
-        return (time) + " AM"
+        return (time) + " AM EDT"
 }
 
 const getMichaelTime = () => {
     let localTime = new Date().toLocaleTimeString([], {timeStyle: "medium", timeZone: "America/Chicago"}).toString()
-    return "" + localTime + " michael time"
+    return "" + localTime
 }
-
-(async () => {
-    console.log("1");
-    console.log(await printAll())
-    console.log("2");
-})()
-
-console.log("3");
 
 
 client.login(TOKEN)
