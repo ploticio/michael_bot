@@ -9,10 +9,6 @@ const commands = [
     {
         name: "query",
         description: "Checks all entries"
-    },
-    {
-        name: "test",
-        description: "tests pinging"
     }
 ]
 
@@ -30,46 +26,28 @@ const rest = new REST().setToken(TOKEN);
 
 client.on("interactionCreate", async (interaction) => {
     if(!interaction.isChatInputCommand()) return;
-    if(interaction.commandName === "query") {
+    if(interaction.commandName === "query")
         interaction.reply(await printAll())
-    }
-    if(interaction.commandName === "test") {
-        const channel = client.channels.cache.get(CHANNEL_ID)
-        interaction.reply("Testing Ping")
-        channel.send(`<@${USER_ID}>`)
-
-    }
 })
 
 client.on("ready", (c) => {
     console.log("Bot is Ready");
-    const channel = client.channels.cache.get(CHANNEL_ID)
-    let cronjob = cron.schedule("*/10 * * * * *", async () => {
+    // const channel = client.channels.cache.get(CHANNEL_ID)
+    let cronjob = cron.schedule("*/5 * * * * *", async () => {
         let found = await getResults()
         if (found) {
-            channel.send(`<@${USER_ID}> ` + found + `\n${LINK}`)
+            // channel.send(`<@${USER_ID}> ` + found + `\n${LINK}`)
+            client.users.send(USER_ID, found + `\n${LINK}`)
             cronjob.stop()
         }
     })
 })
 
-const getData = async () => {
-  try {
-    const response = await fetch(EVENT_LIST)
-    const json = await response.json()
-    const dataArray = json.records.map(rawData => rawData._source)
-    return dataArray
-  } catch (error) {
-    console.log(error.response.body);
-  }
-}
-
 const getResults = async () => {
     const dataArray = await getData()
-    const openEvents = dataArray.filter(event => event.event_cost > 0)
-    if (openEvents.length > 0) {
+    const openEvents = dataArray.filter(event => event.tickets_available > 0)
+    if (openEvents.length > 0)
         return "Discovered " + getMichaelTime() + "\n" + printEntry(openEvents[0])
-    }
     return false
 }
 
@@ -82,6 +60,17 @@ const printAll = async() => {
         result += "\n" + printEntry(entry)
     }
     return result
+}
+
+const getData = async () => {
+  try {
+    const response = await fetch(EVENT_LIST)
+    const json = await response.json()
+    const dataArray = json.records.map(rawData => rawData._source)
+    return dataArray
+  } catch (error) {
+    console.log(error.response.body);
+  }
 }
 
 const printEntry = (entry) => {
@@ -109,7 +98,7 @@ const getTime = (time) => {
 }
 
 const getMichaelTime = () => {
-    let localTime = new Date().toLocaleTimeString([], {timeStyle: "medium", timeZone: "America/Chicago"}).toString()
+    const localTime = new Date().toLocaleTimeString([], {timeStyle: "medium", timeZone: "America/Chicago"}).toString()
     return "" + localTime
 }
 
