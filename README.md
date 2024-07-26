@@ -1,0 +1,1 @@
+discord bot made to notify friend immediately when a spot opens up for convention event
